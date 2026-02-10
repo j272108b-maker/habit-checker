@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>習慣チェッカー</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  justify-content: center;
+  padding: 30px 10px;
+}
+
+.app {
+  background: white;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  padding: 24px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+button {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-btn {
+  background: #667eea;
+  color: white;
+  font-weight: 600;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: #f6f7fb;
+  transition: 0.2s;
+}
+
+.item.checked {
+  background: #e6f7ec;
+  opacity: 0.75;
+}
+
+.item span {
+  flex: 1;
+  font-size: 14px;
+}
+
+.delete {
+  background: transparent;
+  color: #999;
+  font-size: 16px;
+}
+
+.footer {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #777;
+  text-align: center;
+}
+
+.progress {
+  height: 8px;
+  border-radius: 8px;
+  background: #eee;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  width: 0%;
+  transition: width 0.3s;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h1>習慣チェッカー</h1>
+  <div class="subtitle">毎日の習慣をチェック</div>
+
+  <div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="input-row">
+    <input id="newItem" type="text" placeholder="習慣を追加">
+    <button class="add-btn" onclick="addItem()">追加</button>
+  </div>
+
+  <ul id="list"></ul>
+
+  <div class="footer">
+    日付が変わるとチェックは自動リセットされます
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "habit_checker_items";
+const DATE_KEY = "habit_checker_date";
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+
+function loadData() {
+  const savedDate = localStorage.getItem(DATE_KEY);
+  const today = todayStr();
+
+  let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  // 日付が変わったらチェックをリセット
+  if (savedDate !== today) {
+    items = items.map(i => ({ ...i, checked: false }));
+    localStorage.setItem(DATE_KEY, today);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  return items;
+}
+
+function saveData(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function addItem() {
+  const input = document.getElementById("newItem");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const items = loadData();
+  items.push({
+    id: Date.now(),
+    text,
+    checked: false
+  });
+
+  saveData(items);
+  input.value = "";
+  render();
+}
+
+function toggleItem(id) {
+  const items = loadData().map(i =>
+    i.id === id ? { ...i, checked: !i.checked } : i
+  );
+  saveData(items);
+  render();
+}
+
+function deleteItem(id) {
+  const items = loadData().filter(i => i.id !== id);
+  saveData(items);
+  render();
+}
+
+function render() {
+  const list = document.getElementById("list");
+  const items = loadData();
+  list.innerHTML = "";
+
+  items.forEach(item => {
+    const li = document.createElement("li");
+    li.className = "item" + (item.checked ? " checked" : "");
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = item.checked;
+    cb.onchange = () => toggleItem(item.id);
+
+    const span = document.createElement("span");
+    span.textContent = item.text;
+
+    const del = document.createElement("button");
+    del.textContent = "✕";
+    del.className = "delete";
+    del.onclick = () => deleteItem(item.id);
+
+    li.appendChild(cb);
+    li.appendChild(span);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+
+  updateProgress(items);
+}
+
+function updateProgress(items) {
+  const bar = document.getElementById("progressBar");
+  if (items.length === 0) {
+    bar.style.width = "0%";
+    return;
+  }
+  const done = items.filter(i => i.checked).length;
+  const percent = Math.round((done / items.length) * 100);
+  bar.style.width = percent + "%";
+}
+
+// Enterキーで追加
+document.getElementById("newItem").addEventListener("keydown", e => {
+  if (e.key === "Enter") addItem();
+});
+
+// 初期日付セット
+if (!localStorage.getItem(DATE_KEY)) {
+  localStorage.setItem(DATE_KEY, todayStr());
+}
+
+render();
+</script>
+</body>
+</html>
