@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>習慣チェッカー カレンダー版</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;justify-content:center;padding:28px 10px;color:#202331}.app{background:#fff;width:100%;max-width:520px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.15);padding:24px}h1{margin:0 0 6px;font-size:24px}.subtitle{color:#666;font-size:13px;margin-bottom:20px}.progress{height:8px;border-radius:8px;background:#eee;margin-bottom:10px;overflow:hidden}.progress-bar{height:100%;background:linear-gradient(90deg,#667eea,#4f6f52);width:0%;transition:width .3s}.today-status{min-height:20px;margin-bottom:14px;color:#4f6f52;font-size:13px;font-weight:700}.input-row{display:flex;gap:8px;margin-bottom:18px}input[type=text]{flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #ddd;font-size:14px}button{padding:12px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px}.add-btn{background:#667eea;color:#fff;font-weight:700}ul{list-style:none;padding:0;margin:0}.item{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;margin-bottom:10px;background:#f6f7fb}.item.checked{background:#e6f7ec;opacity:.8}.item span{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}.delete{background:transparent;color:#999;font-size:16px;padding:8px}.calendar{margin-top:22px;padding-top:18px;border-top:1px solid #eceef4}.calendar-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.calendar-title{font-size:16px;font-weight:700}.month-nav{display:flex;gap:6px}.month-nav button{width:36px;height:36px;padding:0;border:1px solid #e1e4ec;background:white;color:#394052;font-weight:700}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.weekday{color:#777;font-size:11px;font-weight:700;text-align:center}.day{position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:8px;background:#f6f7fb;color:#586070;font-size:13px;font-weight:600}.day.empty{background:transparent}.day.today{outline:2px solid #667eea;outline-offset:-2px}.day.completed{background:#4f6f52;color:#fff}.day.completed:after{content:"✓";position:absolute;right:5px;bottom:3px;font-size:12px}.calendar-note,.footer{margin-top:12px;font-size:12px;color:#777;text-align:center}@media(max-width:380px){.app{padding:20px 16px}.input-row{flex-direction:column}.add-btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>習慣チェッカー</h1>
+  <div class="subtitle">毎日の習慣をチェック</div>
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="today-status" id="todayStatus"></div>
+  <div class="input-row"><input id="newItem" type="text" placeholder="習慣を追加"><button class="add-btn" onclick="addItem()">追加</button></div>
+  <ul id="list"></ul>
+  <section class="calendar" aria-label="達成カレンダー">
+    <div class="calendar-header"><div class="calendar-title" id="calendarTitle"></div><div class="month-nav"><button type="button" onclick="changeMonth(-1)" aria-label="前の月">‹</button><button type="button" onclick="changeMonth(1)" aria-label="次の月">›</button></div></div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="calendar-note">全部できた日はカレンダーにチェックがつきます</div>
+  </section>
+  <div class="footer">カレンダー版 v2</div>
+</div>
+<script>
+const STORAGE_KEY="habit_checker_items";
+const DATE_KEY="habit_checker_date";
+const COMPLETED_DAYS_KEY="habit_checker_completed_days";
+let calendarDate=new Date();
+function pad(n){return String(n).padStart(2,"0")}
+function dateStr(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function todayStr(){return dateStr(new Date())}
+function loadCompletedDays(){return JSON.parse(localStorage.getItem(COMPLETED_DAYS_KEY)||"[]")}
+function saveCompletedDays(days){localStorage.setItem(COMPLETED_DAYS_KEY,JSON.stringify([...new Set(days)].sort()))}
+function syncTodayCompletion(items){const today=todayStr();const days=loadCompletedDays();const complete=items.length>0&&items.every(i=>i.checked);const marked=days.includes(today);if(complete&&!marked)saveCompletedDays([...days,today]);if(!complete&&marked)saveCompletedDays(days.filter(d=>d!==today))}
+function loadData(){const savedDate=localStorage.getItem(DATE_KEY);const today=todayStr();let items=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(savedDate!==today){items=items.map(i=>({...i,checked:false}));localStorage.setItem(DATE_KEY,today);localStorage.setItem(STORAGE_KEY,JSON.stringify(items))}syncTodayCompletion(items);return items}
+function saveData(items){localStorage.setItem(STORAGE_KEY,JSON.stringify(items));syncTodayCompletion(items)}
+function addItem(){const input=document.getElementById("newItem");const text=input.value.trim();if(!text)return;const items=loadData();items.push({id:Date.now(),text,checked:false});saveData(items);input.value="";render()}
+function toggleItem(id){saveData(loadData().map(i=>i.id===id?{...i,checked:!i.checked}:i));render()}
+function deleteItem(id){saveData(loadData().filter(i=>i.id!==id));render()}
+function render(){const list=document.getElementById("list");const items=loadData();list.innerHTML="";items.forEach(item=>{const li=document.createElement("li");li.className="item"+(item.checked?" checked":"");const cb=document.createElement("input");cb.type="checkbox";cb.checked=item.checked;cb.onchange=()=>toggleItem(item.id);const span=document.createElement("span");span.textContent=item.text;const del=document.createElement("button");del.textContent="✕";del.className="delete";del.onclick=()=>deleteItem(item.id);del.setAttribute("aria-label",item.text+"を削除");li.append(cb,span,del);list.appendChild(li)});updateProgress(items);renderCalendar()}
+function updateProgress(items){const bar=document.getElementById("progressBar");const status=document.getElementById("todayStatus");if(items.length===0){bar.style.width="0%";status.textContent="";return}const done=items.filter(i=>i.checked).length;bar.style.width=Math.round(done/items.length*100)+"%";status.textContent=done===items.length?"今日の習慣を全部達成しました":`${done}/${items.length} 達成`}
+function changeMonth(offset){calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+offset,1);renderCalendar()}
+function renderCalendar(){const grid=document.getElementById("calendarGrid");const title=document.getElementById("calendarTitle");const days=loadCompletedDays();const y=calendarDate.getFullYear();const m=calendarDate.getMonth();const first=new Date(y,m,1);const last=new Date(y,m+1,0).getDate();const today=todayStr();title.textContent=`${y}年${m+1}月`;grid.innerHTML="";["日","月","火","水","木","金","土"].forEach(w=>{const c=document.createElement("div");c.className="weekday";c.textContent=w;grid.appendChild(c)});for(let i=0;i<first.getDay();i++){const c=document.createElement("div");c.className="day empty";grid.appendChild(c)}for(let d=1;d<=last;d++){const current=dateStr(new Date(y,m,d));const c=document.createElement("div");c.className="day";c.textContent=d;if(days.includes(current)){c.classList.add("completed");c.setAttribute("aria-label",`${current} 達成`)}if(current===today)c.classList.add("today");grid.appendChild(c)}}
+document.getElementById("newItem").addEventListener("keydown",e=>{if(e.key==="Enter")addItem()});if(!localStorage.getItem(DATE_KEY))localStorage.setItem(DATE_KEY,todayStr());render();
+</script>
+</body>
+</html>
