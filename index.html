@@ -8,19 +8,24 @@
 <title>習慣チェッカー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #f7b267, #5b8def 58%, #4f6f52);
   display: flex;
   justify-content: center;
   padding: 30px 10px;
+  color: #202331;
 }
 
 .app {
   background: white;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.15);
   padding: 24px;
@@ -37,6 +42,29 @@ h1 {
   margin-bottom: 20px;
 }
 
+.progress {
+  height: 8px;
+  border-radius: 8px;
+  background: #eee;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #5b8def, #4f6f52);
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.today-status {
+  min-height: 20px;
+  margin-bottom: 14px;
+  color: #4f6f52;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .input-row {
   display: flex;
   gap: 8px;
@@ -45,6 +73,7 @@ h1 {
 
 input[type="text"] {
   flex: 1;
+  min-width: 0;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #ddd;
@@ -60,7 +89,7 @@ button {
 }
 
 .add-btn {
-  background: #667eea;
+  background: #5b8def;
   color: white;
   font-weight: 600;
 }
@@ -89,13 +118,105 @@ ul {
 
 .item span {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .delete {
   background: transparent;
   color: #999;
   font-size: 16px;
+  padding: 8px;
+}
+
+.calendar {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #eceef4;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.calendar-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.month-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.month-nav button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e1e4ec;
+  background: white;
+  color: #394052;
+  font-weight: 700;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.weekday {
+  color: #777;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: #f6f7fb;
+  color: #586070;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.day.empty {
+  background: transparent;
+}
+
+.day.today {
+  outline: 2px solid #5b8def;
+  outline-offset: -2px;
+}
+
+.day.completed {
+  background: #4f6f52;
+  color: white;
+}
+
+.day.completed::after {
+  content: "✓";
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.calendar-note {
+  margin-top: 10px;
+  color: #777;
+  font-size: 12px;
+  text-align: center;
 }
 
 .footer {
@@ -105,19 +226,18 @@ ul {
   text-align: center;
 }
 
-.progress {
-  height: 8px;
-  border-radius: 8px;
-  background: #eee;
-  margin-bottom: 14px;
-  overflow: hidden;
-}
+@media (max-width: 380px) {
+  .app {
+    padding: 20px 16px;
+  }
 
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  width: 0%;
-  transition: width 0.3s;
+  .input-row {
+    flex-direction: column;
+  }
+
+  .add-btn {
+    width: 100%;
+  }
 }
 </style>
 </head>
@@ -130,6 +250,7 @@ ul {
   <div class="progress">
     <div class="progress-bar" id="progressBar"></div>
   </div>
+  <div class="today-status" id="todayStatus"></div>
 
   <div class="input-row">
     <input id="newItem" type="text" placeholder="習慣を追加">
@@ -137,6 +258,18 @@ ul {
   </div>
 
   <ul id="list"></ul>
+
+  <section class="calendar" aria-label="達成カレンダー">
+    <div class="calendar-header">
+      <div class="calendar-title" id="calendarTitle"></div>
+      <div class="month-nav">
+        <button type="button" onclick="changeMonth(-1)" aria-label="前の月">‹</button>
+        <button type="button" onclick="changeMonth(1)" aria-label="次の月">›</button>
+      </div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="calendar-note">全部できた日はカレンダーにチェックがつきます</div>
+  </section>
 
   <div class="footer">
     日付が変わるとチェックは自動リセットされます
@@ -146,10 +279,43 @@ ul {
 <script>
 const STORAGE_KEY = "habit_checker_items";
 const DATE_KEY = "habit_checker_date";
+const COMPLETED_DAYS_KEY = "habit_checker_completed_days";
+
+let calendarDate = new Date();
+
+function pad(num) {
+  return String(num).padStart(2, "0");
+}
+
+function dateStr(date) {
+  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+}
 
 function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+  return dateStr(new Date());
+}
+
+function loadCompletedDays() {
+  return JSON.parse(localStorage.getItem(COMPLETED_DAYS_KEY) || "[]");
+}
+
+function saveCompletedDays(days) {
+  localStorage.setItem(COMPLETED_DAYS_KEY, JSON.stringify([...new Set(days)].sort()));
+}
+
+function syncTodayCompletion(items) {
+  const today = todayStr();
+  const completedDays = loadCompletedDays();
+  const isComplete = items.length > 0 && items.every(i => i.checked);
+  const hasToday = completedDays.includes(today);
+
+  if (isComplete && !hasToday) {
+    saveCompletedDays([...completedDays, today]);
+  }
+
+  if (!isComplete && hasToday) {
+    saveCompletedDays(completedDays.filter(day => day !== today));
+  }
 }
 
 function loadData() {
@@ -158,18 +324,19 @@ function loadData() {
 
   let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
-  // 日付が変わったらチェックをリセット
   if (savedDate !== today) {
     items = items.map(i => ({ ...i, checked: false }));
     localStorage.setItem(DATE_KEY, today);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
+  syncTodayCompletion(items);
   return items;
 }
 
 function saveData(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  syncTodayCompletion(items);
 }
 
 function addItem() {
@@ -224,6 +391,7 @@ function render() {
     del.textContent = "✕";
     del.className = "delete";
     del.onclick = () => deleteItem(item.id);
+    del.setAttribute("aria-label", item.text + "を削除");
 
     li.appendChild(cb);
     li.appendChild(span);
@@ -232,25 +400,80 @@ function render() {
   });
 
   updateProgress(items);
+  renderCalendar();
 }
 
 function updateProgress(items) {
   const bar = document.getElementById("progressBar");
+  const status = document.getElementById("todayStatus");
+
   if (items.length === 0) {
     bar.style.width = "0%";
+    status.textContent = "";
     return;
   }
+
   const done = items.filter(i => i.checked).length;
   const percent = Math.round((done / items.length) * 100);
   bar.style.width = percent + "%";
+  status.textContent = done === items.length ? "今日の習慣を全部達成しました" : `${done}/${items.length} 達成`;
 }
 
-// Enterキーで追加
+function changeMonth(offset) {
+  calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + offset, 1);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById("calendarGrid");
+  const title = document.getElementById("calendarTitle");
+  const completedDays = loadCompletedDays();
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const today = todayStr();
+
+  title.textContent = `${year}年${month + 1}月`;
+  grid.innerHTML = "";
+
+  weekdays.forEach(day => {
+    const cell = document.createElement("div");
+    cell.className = "weekday";
+    cell.textContent = day;
+    grid.appendChild(cell);
+  });
+
+  for (let i = 0; i < firstDay.getDay(); i++) {
+    const empty = document.createElement("div");
+    empty.className = "day empty";
+    grid.appendChild(empty);
+  }
+
+  for (let day = 1; day <= lastDate; day++) {
+    const current = dateStr(new Date(year, month, day));
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.textContent = day;
+
+    if (completedDays.includes(current)) {
+      cell.classList.add("completed");
+      cell.setAttribute("aria-label", `${current} 達成`);
+    }
+
+    if (current === today) {
+      cell.classList.add("today");
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
 document.getElementById("newItem").addEventListener("keydown", e => {
   if (e.key === "Enter") addItem();
 });
 
-// 初期日付セット
 if (!localStorage.getItem(DATE_KEY)) {
   localStorage.setItem(DATE_KEY, todayStr());
 }
