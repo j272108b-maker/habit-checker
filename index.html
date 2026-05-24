@@ -1,97 +1,216 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<link rel="icon" href="B89E687D-F6B9-4B2A-A976-95B48BB75225.png">
-<link rel="apple-touch-icon" href="B89E687D-F6B9-4B2A-A976-95B48BB75225.png">
-<link rel="apple-touch-icon" sizes="512x512" href="B89E687D-F6B9-4B2A-A976-95B48BB75225.png">
 <meta charset="UTF-8">
-<title>習慣チェッカー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>習慣チェッカー</title>
 <style>
+:root {
+  --bg: #050b18;
+  --panel: rgba(9, 24, 48, 0.88);
+  --panel-strong: rgba(13, 34, 66, 0.95);
+  --line: rgba(73, 190, 255, 0.38);
+  --line-strong: #49c8ff;
+  --text: #eaf7ff;
+  --muted: #8aa9bf;
+  --ok: #48f2a5;
+  --warn: #ffd166;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #f7b267, #5b8def 58%, #4f6f52);
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(38, 146, 255, 0.35), transparent 34%),
+    radial-gradient(circle at 88% 18%, rgba(59, 225, 255, 0.16), transparent 30%),
+    linear-gradient(145deg, #040814 0%, #081b39 48%, #07111f 100%);
   display: flex;
   justify-content: center;
-  padding: 30px 10px;
-  color: #202331;
+  padding: 22px 10px;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(73, 200, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(73, 200, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent 80%);
 }
 
 .app {
-  background: white;
+  position: relative;
   width: 100%;
   max-width: 520px;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(12, 32, 62, 0.94), rgba(5, 13, 27, 0.94));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 0 42px rgba(60, 190, 255, 0.18);
+  padding: 20px;
+  overflow: hidden;
+}
+
+.app::before,
+.app::after {
+  content: "";
+  position: absolute;
+  width: 74px;
+  height: 74px;
+  border-color: var(--line-strong);
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.app::before {
+  top: 10px;
+  left: 10px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.app::after {
+  right: 10px;
+  bottom: 10px;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+}
+
+.hud-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  color: var(--line-strong);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 h1 {
-  margin: 0 0 6px;
-  font-size: 24px;
+  margin: 5px 0 4px;
+  font-size: 26px;
+  line-height: 1.15;
 }
 
 .subtitle {
-  color: #666;
+  color: var(--muted);
   font-size: 13px;
-  margin-bottom: 20px;
+}
+
+.status-chip {
+  flex: 0 0 auto;
+  min-width: 76px;
+  border: 1px solid rgba(72, 242, 165, 0.48);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--ok);
+  background: rgba(72, 242, 165, 0.08);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.progress-wrap {
+  position: relative;
+  padding: 12px;
+  border: 1px solid rgba(73, 200, 255, 0.26);
+  border-radius: 10px;
+  background: rgba(1, 9, 22, 0.45);
+  margin-bottom: 14px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .progress {
-  height: 8px;
-  border-radius: 8px;
-  background: #eee;
-  margin-bottom: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(93, 135, 170, 0.22);
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #5b8def, #4f6f52);
   width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2f7dff, #49c8ff, #48f2a5);
+  box-shadow: 0 0 18px rgba(73, 200, 255, 0.6);
   transition: width 0.3s;
 }
 
 .today-status {
   min-height: 20px;
-  margin-bottom: 14px;
-  color: #4f6f52;
+  margin: 10px 0 0;
+  color: var(--ok);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .input-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 8px;
-  margin-bottom: 18px;
+  margin: 16px 0;
 }
 
 input[type="text"] {
-  flex: 1;
   min-width: 0;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  font-size: 14px;
+  padding: 13px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(73, 200, 255, 0.3);
+  background: rgba(2, 11, 26, 0.74);
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+}
+
+input[type="text"]::placeholder {
+  color: #69879e;
+}
+
+input[type="text"]:focus {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px rgba(73, 200, 255, 0.12);
 }
 
 button {
-  padding: 12px 16px;
-  border-radius: 10px;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font: inherit;
+}
+
+.add-btn,
+.month-nav button {
+  border: 1px solid rgba(73, 200, 255, 0.5);
+  background: linear-gradient(180deg, rgba(40, 123, 255, 0.95), rgba(16, 67, 150, 0.95));
+  color: white;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 18px rgba(31, 140, 255, 0.2);
 }
 
 .add-btn {
-  background: #5b8def;
-  color: white;
-  font-weight: 600;
+  padding: 0 18px;
 }
 
 ul {
@@ -101,39 +220,52 @@ ul {
 }
 
 .item {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 12px;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 12px;
+  border: 1px solid rgba(73, 200, 255, 0.22);
+  border-radius: 10px;
   margin-bottom: 10px;
-  background: #f6f7fb;
-  transition: 0.2s;
+  background: rgba(10, 27, 54, 0.72);
 }
 
 .item.checked {
-  background: #e6f7ec;
-  opacity: 0.75;
+  border-color: rgba(72, 242, 165, 0.4);
+  background: rgba(22, 64, 66, 0.72);
+}
+
+.item input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ok);
 }
 
 .item span {
-  flex: 1;
   min-width: 0;
-  font-size: 14px;
+  color: #f3fbff;
+  font-size: 15px;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .delete {
-  background: transparent;
-  color: #999;
+  width: 34px;
+  height: 34px;
+  color: #83a4b8;
+  background: rgba(255,255,255,0.03);
   font-size: 16px;
-  padding: 8px;
 }
 
 .calendar {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px solid #eceef4;
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid rgba(73, 200, 255, 0.28);
+  border-radius: 12px;
+  background: rgba(1, 9, 22, 0.42);
 }
 
 .calendar-header {
@@ -145,8 +277,9 @@ ul {
 }
 
 .calendar-title {
+  color: #dff6ff;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .month-nav {
@@ -155,13 +288,10 @@ ul {
 }
 
 .month-nav button {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   padding: 0;
-  border: 1px solid #e1e4ec;
-  background: white;
-  color: #394052;
-  font-weight: 700;
+  font-size: 19px;
 }
 
 .calendar-grid {
@@ -171,9 +301,9 @@ ul {
 }
 
 .weekday {
-  color: #777;
+  color: var(--line-strong);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 900;
   text-align: center;
 }
 
@@ -182,75 +312,95 @@ ul {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  border-radius: 8px;
-  background: #f6f7fb;
-  color: #586070;
+  border: 1px solid rgba(73, 200, 255, 0.16);
+  border-radius: 7px;
+  background: rgba(12, 28, 53, 0.72);
+  color: #b9d3e5;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .day.empty {
+  border-color: transparent;
   background: transparent;
 }
 
 .day.today {
-  outline: 2px solid #5b8def;
-  outline-offset: -2px;
+  border-color: var(--line-strong);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(73, 200, 255, 0.24);
 }
 
 .day.completed {
-  background: #4f6f52;
+  border-color: rgba(72, 242, 165, 0.7);
+  background: linear-gradient(180deg, rgba(72, 242, 165, 0.28), rgba(33, 104, 94, 0.7));
   color: white;
 }
 
 .day.completed::after {
   content: "✓";
   position: absolute;
-  right: 5px;
-  bottom: 3px;
+  right: 4px;
+  bottom: 2px;
+  color: var(--ok);
   font-size: 12px;
   line-height: 1;
 }
 
-.calendar-note {
-  margin-top: 10px;
-  color: #777;
+.calendar-note,
+.footer {
+  margin-top: 12px;
+  color: var(--muted);
   font-size: 12px;
   text-align: center;
 }
 
 .footer {
-  margin-top: 16px;
-  font-size: 12px;
-  color: #777;
-  text-align: center;
+  color: #66859a;
 }
 
 @media (max-width: 380px) {
+  body {
+    padding: 12px 8px;
+  }
+
   .app {
-    padding: 20px 16px;
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 23px;
   }
 
   .input-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .add-btn {
-    width: 100%;
+    min-height: 44px;
   }
 }
 </style>
 </head>
-
 <body>
 <div class="app">
-  <h1>習慣チェッカー</h1>
-  <div class="subtitle">毎日の習慣をチェック</div>
-
-  <div class="progress">
-    <div class="progress-bar" id="progressBar"></div>
+  <div class="hud-top">
+    <div>
+      <div class="eyebrow">DAILY ROUTINE HUD</div>
+      <h1>習慣チェッカー</h1>
+      <div class="subtitle">静かに整える、今日の行動ログ</div>
+    </div>
+    <div class="status-chip">ONLINE</div>
   </div>
-  <div class="today-status" id="todayStatus"></div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>MISSION PROGRESS</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="today-status" id="todayStatus"></div>
+  </div>
 
   <div class="input-row">
     <input id="newItem" type="text" placeholder="習慣を追加">
@@ -261,7 +411,10 @@ ul {
 
   <section class="calendar" aria-label="達成カレンダー">
     <div class="calendar-header">
-      <div class="calendar-title" id="calendarTitle"></div>
+      <div>
+        <div class="eyebrow">ACHIEVEMENT LOG</div>
+        <div class="calendar-title" id="calendarTitle"></div>
+      </div>
       <div class="month-nav">
         <button type="button" onclick="changeMonth(-1)" aria-label="前の月">‹</button>
         <button type="button" onclick="changeMonth(1)" aria-label="次の月">›</button>
@@ -271,9 +424,7 @@ ul {
     <div class="calendar-note">全部できた日はカレンダーにチェックがつきます</div>
   </section>
 
-  <div class="footer">
-    日付が変わるとチェックは自動リセットされます
-  </div>
+  <div class="footer">日付が変わるとチェックは自動リセットされます</div>
 </div>
 
 <script>
@@ -288,7 +439,7 @@ function pad(num) {
 }
 
 function dateStr(date) {
-  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function todayStr() {
@@ -309,19 +460,13 @@ function syncTodayCompletion(items) {
   const isComplete = items.length > 0 && items.every(i => i.checked);
   const hasToday = completedDays.includes(today);
 
-  if (isComplete && !hasToday) {
-    saveCompletedDays([...completedDays, today]);
-  }
-
-  if (!isComplete && hasToday) {
-    saveCompletedDays(completedDays.filter(day => day !== today));
-  }
+  if (isComplete && !hasToday) saveCompletedDays([...completedDays, today]);
+  if (!isComplete && hasToday) saveCompletedDays(completedDays.filter(day => day !== today));
 }
 
 function loadData() {
   const savedDate = localStorage.getItem(DATE_KEY);
   const today = todayStr();
-
   let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
   if (savedDate !== today) {
@@ -345,21 +490,14 @@ function addItem() {
   if (!text) return;
 
   const items = loadData();
-  items.push({
-    id: Date.now(),
-    text,
-    checked: false
-  });
-
+  items.push({ id: Date.now(), text, checked: false });
   saveData(items);
   input.value = "";
   render();
 }
 
 function toggleItem(id) {
-  const items = loadData().map(i =>
-    i.id === id ? { ...i, checked: !i.checked } : i
-  );
+  const items = loadData().map(i => i.id === id ? { ...i, checked: !i.checked } : i);
   saveData(items);
   render();
 }
@@ -393,9 +531,7 @@ function render() {
     del.onclick = () => deleteItem(item.id);
     del.setAttribute("aria-label", item.text + "を削除");
 
-    li.appendChild(cb);
-    li.appendChild(span);
-    li.appendChild(del);
+    li.append(cb, span, del);
     list.appendChild(li);
   });
 
@@ -406,9 +542,11 @@ function render() {
 function updateProgress(items) {
   const bar = document.getElementById("progressBar");
   const status = document.getElementById("todayStatus");
+  const progressText = document.getElementById("progressText");
 
   if (items.length === 0) {
     bar.style.width = "0%";
+    progressText.textContent = "0%";
     status.textContent = "";
     return;
   }
@@ -416,6 +554,7 @@ function updateProgress(items) {
   const done = items.filter(i => i.checked).length;
   const percent = Math.round((done / items.length) * 100);
   bar.style.width = percent + "%";
+  progressText.textContent = percent + "%";
   status.textContent = done === items.length ? "今日の習慣を全部達成しました" : `${done}/${items.length} 達成`;
 }
 
@@ -432,13 +571,12 @@ function renderCalendar() {
   const month = calendarDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDate = new Date(year, month + 1, 0).getDate();
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const today = todayStr();
 
   title.textContent = `${year}年${month + 1}月`;
   grid.innerHTML = "";
 
-  weekdays.forEach(day => {
+  ["日", "月", "火", "水", "木", "金", "土"].forEach(day => {
     const cell = document.createElement("div");
     cell.className = "weekday";
     cell.textContent = day;
@@ -462,10 +600,7 @@ function renderCalendar() {
       cell.setAttribute("aria-label", `${current} 達成`);
     }
 
-    if (current === today) {
-      cell.classList.add("today");
-    }
-
+    if (current === today) cell.classList.add("today");
     grid.appendChild(cell);
   }
 }
