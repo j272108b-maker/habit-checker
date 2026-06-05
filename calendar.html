@@ -260,6 +260,118 @@ ul {
   font-size: 16px;
 }
 
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer-open {
+  min-width: 68px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(73, 200, 255, 0.48);
+  color: var(--line-strong);
+  background: rgba(73, 200, 255, 0.08);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.meditation-timer {
+  display: none;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(73, 200, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(1, 9, 22, 0.52);
+}
+
+.meditation-timer.active {
+  display: block;
+}
+
+.timer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.timer-title {
+  color: #dff6ff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.timer-target {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timer-close {
+  width: 34px;
+  height: 34px;
+  color: #83a4b8;
+  background: rgba(255,255,255,0.03);
+  font-size: 16px;
+}
+
+.timer-display {
+  margin: 12px 0;
+  padding: 16px 12px;
+  border: 1px solid rgba(72, 242, 165, 0.24);
+  border-radius: 10px;
+  background: rgba(72, 242, 165, 0.06);
+  color: var(--ok);
+  text-align: center;
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-settings,
+.timer-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timer-settings {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 76px;
+  margin-bottom: 10px;
+}
+
+.preset-btn,
+.timer-action {
+  min-height: 38px;
+  border: 1px solid rgba(73, 200, 255, 0.36);
+  color: var(--text);
+  background: rgba(73, 200, 255, 0.08);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.timer-action.primary {
+  border-color: rgba(72, 242, 165, 0.52);
+  color: #052016;
+  background: linear-gradient(180deg, rgba(72, 242, 165, 0.95), rgba(34, 185, 124, 0.95));
+}
+
+.minute-input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(73, 200, 255, 0.3);
+  background: rgba(2, 11, 26, 0.74);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+}
+
 .calendar {
   margin-top: 20px;
   padding: 14px;
@@ -376,6 +488,15 @@ ul {
     grid-template-columns: 1fr;
   }
 
+  .timer-settings,
+  .timer-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .minute-input {
+    min-height: 38px;
+  }
+
   .add-btn {
     min-height: 44px;
   }
@@ -409,6 +530,29 @@ ul {
 
   <ul id="list"></ul>
 
+  <section class="meditation-timer" id="meditationTimer" aria-label="瞑想タイマー">
+    <div class="timer-head">
+      <div>
+        <div class="eyebrow">MEDITATION TIMER</div>
+        <div class="timer-title">瞑想タイマー</div>
+        <div class="timer-target" id="timerTarget">瞑想</div>
+      </div>
+      <button class="timer-close" type="button" onclick="closeMeditationTimer()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="timer-settings">
+      <button class="preset-btn" type="button" onclick="setTimerMinutes(3)">3分</button>
+      <button class="preset-btn" type="button" onclick="setTimerMinutes(5)">5分</button>
+      <button class="preset-btn" type="button" onclick="setTimerMinutes(10)">10分</button>
+      <input class="minute-input" id="timerMinutes" type="number" min="1" max="120" value="5" aria-label="瞑想時間（分）">
+    </div>
+    <div class="timer-display" id="timerDisplay">05:00</div>
+    <div class="timer-actions">
+      <button class="timer-action primary" type="button" onclick="startMeditationTimer()">開始</button>
+      <button class="timer-action" type="button" onclick="pauseMeditationTimer()">一時停止</button>
+      <button class="timer-action" type="button" onclick="resetMeditationTimer()">リセット</button>
+    </div>
+  </section>
+
   <section class="calendar" aria-label="達成カレンダー">
     <div class="calendar-header">
       <div>
@@ -431,8 +575,14 @@ ul {
 const STORAGE_KEY = "habit_checker_items";
 const DATE_KEY = "habit_checker_date";
 const COMPLETED_DAYS_KEY = "habit_checker_completed_days";
+const TIMER_MINUTES_KEY = "habit_checker_meditation_minutes";
 
 let calendarDate = new Date();
+let activeMeditationHabitId = null;
+let timerInterval = null;
+let timerTotalSeconds = 5 * 60;
+let timerRemainingSeconds = timerTotalSeconds;
+let timerRunning = false;
 
 function pad(num) {
   return String(num).padStart(2, "0");
@@ -505,7 +655,12 @@ function toggleItem(id) {
 function deleteItem(id) {
   const items = loadData().filter(i => i.id !== id);
   saveData(items);
+  if (activeMeditationHabitId === id) closeMeditationTimer();
   render();
+}
+
+function isMeditationItem(item) {
+  return item.text.includes("瞑想") || item.text.toLowerCase().includes("meditation");
 }
 
 function render() {
@@ -531,12 +686,108 @@ function render() {
     del.onclick = () => deleteItem(item.id);
     del.setAttribute("aria-label", item.text + "を削除");
 
-    li.append(cb, span, del);
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    if (isMeditationItem(item)) {
+      const timer = document.createElement("button");
+      timer.type = "button";
+      timer.textContent = "TIMER";
+      timer.className = "timer-open";
+      timer.onclick = () => openMeditationTimer(item.id);
+      timer.setAttribute("aria-label", item.text + "のタイマーを開く");
+      actions.appendChild(timer);
+    }
+
+    actions.appendChild(del);
+    li.append(cb, span, actions);
     list.appendChild(li);
   });
 
   updateProgress(items);
   renderCalendar();
+}
+
+function openMeditationTimer(id) {
+  const items = loadData();
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  activeMeditationHabitId = id;
+  document.getElementById("timerTarget").textContent = item.text;
+  document.getElementById("meditationTimer").classList.add("active");
+
+  const savedMinutes = Number(localStorage.getItem(TIMER_MINUTES_KEY) || 5);
+  if (!timerRunning) setTimerMinutes(savedMinutes);
+}
+
+function closeMeditationTimer() {
+  pauseMeditationTimer();
+  activeMeditationHabitId = null;
+  document.getElementById("meditationTimer").classList.remove("active");
+}
+
+function normalizeTimerMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes)) return 5;
+  return Math.min(120, Math.max(1, Math.round(minutes)));
+}
+
+function setTimerMinutes(minutes) {
+  const normalized = normalizeTimerMinutes(minutes);
+  localStorage.setItem(TIMER_MINUTES_KEY, String(normalized));
+  document.getElementById("timerMinutes").value = normalized;
+  timerTotalSeconds = normalized * 60;
+  timerRemainingSeconds = timerTotalSeconds;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const minutes = Math.floor(timerRemainingSeconds / 60);
+  const seconds = timerRemainingSeconds % 60;
+  document.getElementById("timerDisplay").textContent = `${pad(minutes)}:${pad(seconds)}`;
+}
+
+function startMeditationTimer() {
+  if (!activeMeditationHabitId) return;
+
+  if (!timerRunning) {
+    const minutes = normalizeTimerMinutes(document.getElementById("timerMinutes").value);
+    if (timerRemainingSeconds <= 0 || timerRemainingSeconds === timerTotalSeconds) {
+      setTimerMinutes(minutes);
+    }
+  }
+
+  timerRunning = true;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerRemainingSeconds -= 1;
+    updateTimerDisplay();
+
+    if (timerRemainingSeconds <= 0) completeMeditationTimer();
+  }, 1000);
+}
+
+function pauseMeditationTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function resetMeditationTimer() {
+  pauseMeditationTimer();
+  setTimerMinutes(document.getElementById("timerMinutes").value);
+}
+
+function completeMeditationTimer() {
+  pauseMeditationTimer();
+  timerRemainingSeconds = 0;
+  updateTimerDisplay();
+
+  const items = loadData().map(item =>
+    item.id === activeMeditationHabitId ? { ...item, checked: true } : item
+  );
+  saveData(items);
+  render();
 }
 
 function updateProgress(items) {
@@ -607,6 +858,10 @@ function renderCalendar() {
 
 document.getElementById("newItem").addEventListener("keydown", e => {
   if (e.key === "Enter") addItem();
+});
+
+document.getElementById("timerMinutes").addEventListener("change", e => {
+  if (!timerRunning) setTimerMinutes(e.target.value);
 });
 
 if (!localStorage.getItem(DATE_KEY)) {
