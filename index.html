@@ -23,6 +23,14 @@
   <ul id="list"></ul>
   <section class="habit-timer" id="habitTimer" aria-label="習慣タイマー"><div class="timer-head"><div><div class="eyebrow">FOCUS TIMER</div><div class="timer-title">習慣タイマー</div><div class="timer-target" id="timerTarget">対象の習慣</div></div><button class="timer-close" type="button" onclick="closeHabitTimer()" aria-label="閉じる">✕</button></div><div class="timer-settings"><button class="preset-btn" type="button" onclick="setTimerMinutes(3)">3分</button><button class="preset-btn" type="button" onclick="setTimerMinutes(5)">5分</button><button class="preset-btn" type="button" onclick="setTimerMinutes(10)">10分</button><input class="minute-input" id="timerMinutes" type="number" min="1" max="120" value="5" aria-label="習慣時間（分）"></div><div class="timer-display" id="timerDisplay">05:00</div><div class="timer-sound" id="timerSound">自然音: 待機中</div><div class="timer-actions"><button class="timer-action primary" type="button" onclick="startHabitTimer()">開始</button><button class="timer-action" type="button" onclick="pauseHabitTimer()">一時停止</button><button class="timer-action" type="button" onclick="resetHabitTimer()">リセット</button></div></section>
   <section class="calendar" aria-label="達成カレンダー"><div class="calendar-header"><div><div class="eyebrow">ACHIEVEMENT LOG</div><div class="calendar-title" id="calendarTitle"></div></div><div class="month-nav"><button type="button" onclick="changeMonth(-1)" aria-label="前の月">‹</button><button type="button" onclick="changeMonth(1)" aria-label="次の月">›</button></div></div><div class="calendar-grid" id="calendarGrid"></div><div class="calendar-note">今日以前の日付をタップすると達成率を編集できます</div></section>
+  <section aria-label="データ移行" style="margin-top:20px;border-top:1px solid var(--line);padding-top:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="timer-action" style="padding:10px" onclick="exportBackup()">記録を書き出す</button>
+      <button class="timer-action" style="padding:10px" onclick="document.getElementById('backupFile').click()">記録を読み込む</button>
+    </div>
+    <input id="backupFile" type="file" accept=".json,application/json" hidden onchange="importBackup(this)">
+    <div id="backupStatus" role="status" style="margin-top:8px;font-size:13px;overflow-wrap:anywhere"></div>
+  </section>
   <div class="footer">日付が変わるとチェックは自動リセットされます</div>
 </div>
 <script>
@@ -90,5 +98,7 @@ document.addEventListener("visibilitychange",()=>{if(!timerRunning)return;update
 if(!localStorage.getItem(DATE_KEY))localStorage.setItem(DATE_KEY,todayStr());
 render();
 </script>
+<script src="backup.js?v=1"></script>
 </body>
 </html>
+
