@@ -90,9 +90,101 @@ async function importBackup(input) {
     applyBackup(data);
     render();
     backupMessage("記録を読み込みました。");
+    checkMonthlyBackup();
   } catch (error) {
     backupMessage("読み込めませんでした: " + error.message);
   } finally {
     input.value = "";
   }
 }
+const MONTHLY_CONFIRMED_KEY = "habit_checker_monthly_backup_confirmed";
+function monthlyBackupDue(data, now, confirmed) {
+  const month = dateStr(now).slice(0, 7);
+  const monthEnd = now.getDate() === new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const target = monthEnd ? month : dateStr(new Date(now.getFullYear(), now.getMonth(), 0)).slice(0, 7);
+  const dates = [...Object.keys(data.dayProgress), ...data.completedDays];
+  if (data.items.length) dates.push(data.date);
+  if (!dates.some(date => date.slice(0, 7) <= target)) return null;
+  return confirmed && confirmed >= target ? null : target;
+}
+let monthlyPending = null;
+let monthlyAttempted = null;
+function downloadMonthlyBackup() {
+  try {
+    const data = makeBackup();
+    validateBackup(data);
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "habit-checker-monthly-" + monthlyPending + "-" + todayStr() + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    document.getElementById("monthlyBackupText").textContent =
+      monthlyPending + " 月次バックアップ：ダウンロード要求済み・保存未確認";
+    document.getElementById("monthlyBackupConfirm").disabled = false;
+  } catch (error) {
+    backupMessage("月次バックアップを書き出せませんでした: " + error.message);
+  }
+}
+function checkMonthlyBackup() {
+  if (document.visibilityState === "hidden") return;
+  try {
+    const due = monthlyBackupDue(makeBackup(), new Date(), localStorage.getItem(MONTHLY_CONFIRMED_KEY));
+    const panel = document.getElementById("monthlyBackup");
+    if (!due) { panel.hidden = true; monthlyPending = null; return; }
+    panel.hidden = false;
+    if (monthlyPending !== due) {
+      monthlyPending = due;
+      document.getElementById("monthlyBackupText").textContent = due + " 月次バックアップ：未保存";
+      document.getElementById("monthlyBackupConfirm").disabled = true;
+    }
+    if (monthlyAttempted !== due) {
+      monthlyAttempted = due;
+      downloadMonthlyBackup();
+    }
+  } catch (error) {
+    backupMessage("月次バックアップを確認できませんでした: " + error.message);
+  }
+}
+function confirmMonthlyBackup() {
+  if (!monthlyPending || !confirm("ダウンロード先に記録ファイルが保存されていることを確認しましたか？")) return;
+  try {
+    localStorage.setItem(MONTHLY_CONFIRMED_KEY, monthlyPending);
+    document.getElementById("monthlyBackup").hidden = true;
+    backupMessage(monthlyPending + " 月次バックアップ：保存確認済み");
+    monthlyPending = null;
+  } catch (error) {
+    backupMessage("保存確認を記録できませんでした: " + error.message);
+  }
+}
+const monthlyPanel = document.createElement("section");
+monthlyPanel.id = "monthlyBackup";
+monthlyPanel.hidden = true;
+monthlyPanel.style.cssText = "margin:12px 0;padding:12px 0;border-block:1px solid var(--line)";
+const monthlyText = document.createElement("div");
+monthlyText.id = "monthlyBackupText";
+monthlyText.setAttribute("role", "status");
+monthlyText.style.cssText = "font-size:13px;overflow-wrap:anywhere;margin-bottom:8px";
+const monthlyActions = document.createElement("div");
+monthlyActions.style.cssText = "display:flex;flex-wrap:wrap;gap:8px";
+const monthlyRetry = document.createElement("button");
+monthlyRetry.type = "button";
+monthlyRetry.className = "timer-action";
+monthlyRetry.textContent = "バックアップを保存";
+monthlyRetry.onclick = downloadMonthlyBackup;
+const monthlyConfirm = document.createElement("button");
+monthlyConfirm.type = "button";
+monthlyConfirm.id = "monthlyBackupConfirm";
+monthlyConfirm.className = "timer-action";
+monthlyConfirm.textContent = "保存できた";
+monthlyConfirm.onclick = confirmMonthlyBackup;
+monthlyActions.append(monthlyRetry, monthlyConfirm);
+monthlyPanel.append(monthlyText, monthlyActions);
+document.querySelector(".progress-wrap").after(monthlyPanel);
+checkMonthlyBackup();
+document.addEventListener("visibilitychange", checkMonthlyBackup);
+window.addEventListener("focus", checkMonthlyBackup);
+setInterval(checkMonthlyBackup, 60000);
