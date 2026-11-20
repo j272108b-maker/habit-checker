@@ -98,10 +98,12 @@ async function importBackup(input) {
   }
 }
 const MONTHLY_CONFIRMED_KEY = "habit_checker_monthly_backup_confirmed";
+const MONTHLY_ATTEMPTED_KEY = "habit_checker_monthly_backup_attempted";
 function monthlyBackupDue(data, now, confirmed) {
   const month = dateStr(now).slice(0, 7);
   const monthEnd = now.getDate() === new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const target = monthEnd ? month : dateStr(new Date(now.getFullYear(), now.getMonth(), 0)).slice(0, 7);
+  if (!monthEnd) return null;
+  const target = month;
   const dates = [...Object.keys(data.dayProgress), ...data.completedDays];
   if (data.items.length) dates.push(data.date);
   if (!dates.some(date => date.slice(0, 7) <= target)) return null;
@@ -110,6 +112,7 @@ function monthlyBackupDue(data, now, confirmed) {
 let monthlyPending = null;
 let monthlyAttempted = null;
 function downloadMonthlyBackup() {
+  if (!monthlyPending) return;
   try {
     const data = makeBackup();
     validateBackup(data);
@@ -138,10 +141,14 @@ function checkMonthlyBackup() {
     panel.hidden = false;
     if (monthlyPending !== due) {
       monthlyPending = due;
-      document.getElementById("monthlyBackupText").textContent = due + " 月次バックアップ：未保存";
-      document.getElementById("monthlyBackupConfirm").disabled = true;
+      const attempted = localStorage.getItem(MONTHLY_ATTEMPTED_KEY) === due;
+      document.getElementById("monthlyBackupText").textContent = due +
+        (attempted ? " 月次バックアップ：ダウンロード要求済み・保存未確認" : " 月次バックアップ：未保存");
+      document.getElementById("monthlyBackupConfirm").disabled = !attempted;
     }
-    if (monthlyAttempted !== due) {
+    if (monthlyAttempted !== due && localStorage.getItem(MONTHLY_ATTEMPTED_KEY) !== due) {
+      // Persist the attempt before downloading; confirmation is tracked separately.
+      localStorage.setItem(MONTHLY_ATTEMPTED_KEY, due);
       monthlyAttempted = due;
       downloadMonthlyBackup();
     }
